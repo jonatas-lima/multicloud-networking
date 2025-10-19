@@ -6,6 +6,10 @@ locals {
 resource "random_password" "shared_key" {
   length           = 32
   override_special = "._"
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 module "aws_vpc" {
