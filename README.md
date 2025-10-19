@@ -175,6 +175,11 @@ graph TB
 
 1. SSH into one of the 6 instances provisioned and `curl` and `ping` the other instances through the private IP, it should be working!
 
+    ```bash
+    ssh ec2-user@<aws instance public ip> 'ping -c3 <private ip of any instance>; curl -s http://<private ip of any instance>'
+    ssh ubuntu@<gcp instance public ip> 'ping -c3 <private ip of any instance>; curl -s http://<private ip of any instance>'
+    ```
+
 ## Terraform Docs
 
 <!-- BEGIN_TF_DOCS -->
