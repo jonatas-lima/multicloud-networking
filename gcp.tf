@@ -1,38 +1,3 @@
-variable "gcp_project_id" {
-  description = "GCP Project ID."
-  type        = string
-  default     = "multi-region-network"
-}
-
-variable "gcp_region" {
-  description = "GCP region for the resources."
-  type        = string
-  default     = "us-west1"
-}
-
-variable "gcp_network_name" {
-  description = "Name of the GCP VPC network."
-  type        = string
-  default     = "multi-cloud-vpc"
-}
-
-variable "gcp_network_cidr" {
-  description = "GCP VPC CIDR."
-  type        = string
-  default     = "10.1.0.0/16"
-
-  validation {
-    condition     = can(cidrsubnet(var.gcp_network_cidr, 0, 0))
-    error_message = "Invalid CIDR block for GCP VPC network."
-  }
-}
-
-variable "gcp_asn" {
-  description = "GCP Side ASN for the GCP VPN Gateway."
-  type        = string
-  default     = "65001"
-}
-
 locals {
   gcp_public_subnets = cidrsubnets(var.gcp_network_cidr, 8, 8, 8)
   gcp_tunnels_per_vpn = {
@@ -240,6 +205,7 @@ resource "google_compute_instance" "this" {
 }
 
 output "gcp_instances_address" {
+  description = "Public and Private IPs of the GCP instance."
   value = {
     for instance in values(google_compute_instance.this) :
     instance.name => {

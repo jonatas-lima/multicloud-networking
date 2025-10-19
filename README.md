@@ -241,8 +241,8 @@ graph TB
 
 | Name | Description |
 |------|-------------|
-| <a name="output_aws_instances_address"></a> [aws\_instances\_address](#output\_aws\_instances\_address) | n/a |
+| <a name="output_aws_instances_address"></a> [aws\_instances\_address](#output\_aws\_instances\_address) | Public and Private IPs of the AWS instances. |
+| <a name="output_aws_vpn_tunnel_status"></a> [aws\_vpn\_tunnel\_status](#output\_aws\_vpn\_tunnel\_status) | VPN tunnel information for debugging |
 | <a name="output_gcp_bgp_info"></a> [gcp\_bgp\_info](#output\_gcp\_bgp\_info) | GCP BGP configuration |
-| <a name="output_gcp_instances_address"></a> [gcp\_instances\_address](#output\_gcp\_instances\_address) | n/a |
-| <a name="output_vpn_tunnel_status"></a> [vpn\_tunnel\_status](#output\_vpn\_tunnel\_status) | VPN tunnel information for debugging |
+| <a name="output_gcp_instances_address"></a> [gcp\_instances\_address](#output\_gcp\_instances\_address) | Public and Private IPs of the GCP instance. |
 <!-- END_TF_DOCS -->
