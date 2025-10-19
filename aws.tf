@@ -1,48 +1,69 @@
 variable "aws_region" {
-  default = "us-east-2"
+  description = "AWS region."
+  type        = string
+  default     = "us-east-2"
 }
 
 variable "aws_vpc_cidr" {
-  default = "10.0.0.0/16"
+  description = "AWS VPC CIDR."
+  type        = string
+  default     = "10.0.0.0/16"
+
+  validation {
+    condition     = can(cidrsubnet(var.aws_vpc_cidr, 0, 0))
+    error_message = "Invalid CIDR block for AWS VPC network."
+  }
 }
 
 variable "aws_vpc_name" {
-  default = "multi-cloud-vpc"
+  description = "Name of the AWS VPC."
+  type        = string
+  default     = "multi-cloud-vpc"
 }
 
 variable "aws_asn" {
-  default = "64512"
-}
-
-variable "shared_key" {
-  default = "mysecretkey123"
+  description = "Amazon Side ASN for the AWS VPN Gateway."
+  type        = string
+  default     = "64512"
 }
 
 variable "aws_ssh_keypair_name" {
-  type = string
+  description = "Name of the AWS SSH key pair."
+  type        = string
 }
 
 variable "aws_ssh_public_key_path" {
-  type    = string
-  default = "~/.ssh/id_ed25519.pub"
+  description = "Path to the AWS SSH public key. Used to login to EC2 instances."
+  type        = string
+  default     = "~/.ssh/id_ed25519.pub"
 }
 
 variable "aws_ssh_keypair_exists" {
-  type    = bool
-  default = false
+  description = "Set to true if the AWS SSH key pair already exists."
+  type        = bool
+  default     = false
 }
 
 variable "aws_ami" {
-  default = "ami-0199d4b5b8b4fde0e"
+  description = "AMI ID for the AWS EC2 instances."
+  type        = string
+  default     = "ami-0199d4b5b8b4fde0e"
 }
 
 variable "aws_instance_type" {
-  default = "t3a.micro"
+  description = "Instance type for the AWS EC2 instances."
+  type        = string
+  default     = "t3a.micro"
 }
 
 locals {
   aws_azs            = ["${var.aws_region}a", "${var.aws_region}b", "${var.aws_region}c"]
   aws_public_subnets = cidrsubnets(var.aws_vpc_cidr, 8, 8, 8)
+}
+
+resource "random_password" "shared_key" {
+  length           = 32
+  override_special = "._"
 }
 
 module "aws_vpc" {
@@ -96,14 +117,6 @@ module "aws_vpc" {
       bgp_asn    = var.gcp_asn
       ip_address = interface.ip_address
     }
-    # gcp_01 = {
-    #   bgp_asn    = var.gcp_asn
-    #   ip_address = google_compute_ha_vpn_gateway.this.vpn_interfaces[0].ip_address
-    # }
-    # gcp_02 = {
-    #   bgp_asn    = var.gcp_asn
-    #   ip_address = google_compute_ha_vpn_gateway.this.vpn_interfaces[1].ip_address
-    # }
   }
   public_subnets = local.aws_public_subnets
 
@@ -117,8 +130,8 @@ resource "aws_vpn_connection" "this" {
   customer_gateway_id   = each.value.id
   type                  = "ipsec.1"
   vpn_gateway_id        = module.aws_vpc.vgw_id
-  tunnel1_preshared_key = var.shared_key
-  tunnel2_preshared_key = var.shared_key
+  tunnel1_preshared_key = random_password.shared_key.result
+  tunnel2_preshared_key = random_password.shared_key.result
 }
 
 data "aws_key_pair" "this" {
@@ -160,6 +173,27 @@ output "aws_instances_address" {
     instance.id => {
       public_ip  = instance.public_ip
       private_ip = instance.private_ip
+    }
+  }
+}
+
+output "vpn_tunnel_status" {
+  description = "VPN tunnel information for debugging"
+  value = {
+    for name, conn in aws_vpn_connection.this : name => {
+      id = conn.id
+      tunnels = [
+        {
+          address    = conn.tunnel1_address
+          bgp_ip     = conn.tunnel1_vgw_inside_address
+          cgw_bgp_ip = conn.tunnel1_cgw_inside_address
+        },
+        {
+          address    = conn.tunnel2_address
+          bgp_ip     = conn.tunnel2_vgw_inside_address
+          cgw_bgp_ip = conn.tunnel2_cgw_inside_address
+        }
+      ]
     }
   }
 }

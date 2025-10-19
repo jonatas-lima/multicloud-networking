@@ -1,21 +1,36 @@
 variable "gcp_project_id" {
-  default = "multi-region-network"
+  description = "GCP Project ID."
+  type        = string
+  default     = "multi-region-network"
 }
 
 variable "gcp_region" {
-  default = "us-west1"
+  description = "GCP region for the resources."
+  type        = string
+  default     = "us-west1"
 }
 
 variable "gcp_network_name" {
-  default = "multi-cloud-vpc"
+  description = "Name of the GCP VPC network."
+  type        = string
+  default     = "multi-cloud-vpc"
 }
 
 variable "gcp_network_cidr" {
-  default = "10.1.0.0/16"
+  description = "GCP VPC CIDR."
+  type        = string
+  default     = "10.1.0.0/16"
+
+  validation {
+    condition     = can(cidrsubnet(var.gcp_network_cidr, 0, 0))
+    error_message = "Invalid CIDR block for GCP VPC network."
+  }
 }
 
 variable "gcp_asn" {
-  default = "65001"
+  description = "GCP Side ASN for the GCP VPN Gateway."
+  type        = string
+  default     = "65001"
 }
 
 locals {
@@ -164,7 +179,7 @@ resource "google_compute_vpn_tunnel" "this" {
 
   name                            = "${var.gcp_network_name}-vpn-tunnel-${each.key}"
   region                          = var.gcp_region
-  shared_secret                   = var.shared_key
+  shared_secret                   = random_password.shared_key.result
   peer_external_gateway           = google_compute_external_vpn_gateway.this[each.value.vpn_name].id
   peer_external_gateway_interface = each.value.peer_external_gateway_interface
   router                          = google_compute_router.this.name
@@ -230,6 +245,22 @@ output "gcp_instances_address" {
     instance.name => {
       public_ip  = instance.network_interface[0].access_config[0].nat_ip
       private_ip = instance.network_interface[0].network_ip
+    }
+  }
+}
+
+output "gcp_bgp_info" {
+  description = "GCP BGP configuration"
+  value = {
+    router_name = google_compute_router.this.name
+    asn         = google_compute_router.this.bgp[0].asn
+    region      = google_compute_router.this.region
+    peers = {
+      for name, peer in google_compute_router_peer.this : name => {
+        ip      = peer.ip_address
+        peer_ip = peer.peer_ip_address
+        asn     = peer.peer_asn
+      }
     }
   }
 }
